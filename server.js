@@ -11,7 +11,8 @@ const io = new Server(server, {
   transports: ['websocket', 'polling']
 });
 
-app.use(express.static(path.join(__dirname, 'public')));
+// Ana dizindeki HTML dosyalarını (index.html ve dj.html) sun
+app.use(express.static(__dirname));
 
 const DJ_PASSWORD = process.env.DJ_PASSWORD || 'Eczacibasi1966!';
 

@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Eczacıbaşı Spor Kulübü • Taraftar Işık Şovu</title>
+  <script src="/socket.io/socket.io.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; }
+    body {
+      background-color: #FF6600;
+      color: #FFFFFF;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      text-align: center;
+      padding: 14px;
+      transition: background-color 0.08s ease;
+      overflow-x: hidden;
+      user-select: none;
+    }
+    .top-bar { width: 100%; max-width: 480px; display: flex; justify-content: space-between; align-items: center; z-index: 10; }
+    .badge { background: rgba(0,0,0,0.35); padding: 7px 14px; border-radius: 20px; font-size: 0.78rem; font-weight: 800; }
+    .setup-card {
+      background: rgba(15, 15, 18, 0.92);
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 22px;
+      padding: 16px;
+      width: 100%;
+      max-width: 430px;
+      box-shadow: 0 18px 40px rgba(0,0,0,0.45);
+      z-index: 10;
+    }
+    h1 { font-size: 1.3rem; font-weight: 900; color: #FF6600; text-transform: uppercase; }
+    .sub { font-size: 0.82rem; color: #D4D4D8; margin: 4px 0 10px 0; }
+    svg { width: 100%; max-height: 270px; background: #18181B; border-radius: 14px; padding: 6px; border: 1px solid #27272A; }
+    .blk { cursor: pointer; transition: opacity 0.15s; stroke: #18181B; stroke-width: 1.5; }
+    .blk:hover { opacity: 0.85; }
+    .blk.selected { stroke: #FFFFFF; stroke-width: 3.5; filter: drop-shadow(0 0 6px #FFFFFF); }
+    .blk-txt { font-size: 7px; font-weight: 800; fill: #111; pointer-events: none; text-anchor: middle; }
+    .blk-txt.light { fill: #FFF; }
+    .controls { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 8px; margin-top: 10px; }
+    select {
+      padding: 10px 8px; border-radius: 10px; border: 1px solid #3F3F46;
+      background: #27272A; color: #FFF; font-weight: 700; font-size: 0.82rem;
+    }
+    .btn-join {
+      width: 100%; margin-top: 12px; padding: 15px;
+      background: linear-gradient(135deg, #FF6600, #EA580C);
+      color: #FFFFFF; border: none; border-radius: 14px;
+      font-size: 1.05rem; font-weight: 900; cursor: pointer;
+      box-shadow: 0 8px 20px rgba(255,102,0,0.4);
+    }
+    .btn-join:active { transform: scale(0.97); }
+    .active-overlay {
+      display: none; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center; padding: 20px; transition: opacity 0.3s;
+    }
+    .active-overlay h2 { font-size: 2rem; font-weight: 900; text-shadow: 0 2px 12px rgba(0,0,0,0.4); }
+    .btn-edit {
+      margin-top: 20px; background: rgba(0,0,0,0.4); color: #FFF;
+      border: 1px solid rgba(255,255,255,0.4); padding: 10px 18px;
+      border-radius: 20px; font-size: 0.85rem; cursor: pointer; font-weight: 700;
+    }
+    .footer { background: rgba(0,0,0,0.35); padding: 7px 16px; border-radius: 14px; font-size: 0.8rem; font-weight: 700; z-index: 10; }
+  </style>
+</head>
+<body>
+
+  <div class="top-bar">
+    <div class="badge">ECZACIBAŞI SPOR KULÜBÜ</div>
+    <div class="badge" id="onlineBadge">● BAĞLANIYOR</div>
+  </div>
+
+  <div class="setup-card" id="setupCard">
+    <h1>KOLTUĞUNU SEÇ</h1>
+    <p class="sub">Krokiden bloğuna dokun veya aşağıdan seçerek şova katıl</p>
+
+    <svg viewBox="0 0 360 310" id="arenaMap">
+      <rect x="105" y="105" width="150" height="105" rx="6" fill="#27272A"/>
+      <rect x="115" y="115" width="130" height="85" rx="4" fill="#FF6600"/>
+      <line x1="147" y1="115" x2="147" y2="200" stroke="#FFF" stroke-width="1"/>
+      <line x1="180" y1="115" x2="180" y2="200" stroke="#FFF" stroke-width="2"/>
+      <line x1="213" y1="115" x2="213" y2="200" stroke="#FFF" stroke-width="1"/>
+
+      <!-- ÜST TRİBÜNLER -->
+      <rect id="b_UST_108" class="blk" x="98" y="8" width="32" height="30" rx="5" fill="#FDE047" onclick="selectBlock('UST_108')"/>
+      <text x="114" y="25" class="blk-txt">ÜST 108</text>
+      <rect id="b_UST_109" class="blk" x="135" y="8" width="88" height="30" rx="5" fill="#FDE047" onclick="selectBlock('UST_109')"/>
+      <text x="179" y="25" class="blk-txt">ÜST 109</text>
+      <path id="b_UST_110" class="blk" d="M228,8 H282 L308,35 L286,52 L262,38 H228 Z" fill="#FDE047" onclick="selectBlock('UST_110')"/>
+      <text x="266" y="27" class="blk-txt">ÜST 110</text>
+
+      <!-- MİSAFİR -->
+      <path id="b_MISAFIR_108" class="blk" d="M46,35 L92,10 V38 L58,60 Z" fill="#71717A" onclick="selectBlock('MISAFIR_108')"/>
+      <text x="69" y="39" class="blk-txt light">MİS 108</text>
+      <path id="b_MISAFIR_107" class="blk" d="M12,80 L42,42 L68,68 L78,105 H12 Z" fill="#71717A" onclick="selectBlock('MISAFIR_107')"/>
+      <text x="40" y="85" class="blk-txt light">MİSAFİR 107</text>
+
+      <!-- ALT & TRİBÜN 66 -->
+      <rect id="b_ALT_108" class="blk" x="76" y="44" width="44" height="32" rx="4" fill="#86EFAC" onclick="selectBlock('ALT_108')"/>
+      <text x="98" y="62" class="blk-txt">ALT 108</text>
+      <rect id="b_TRIB_108" class="blk" x="86" y="80" width="34" height="18" rx="3" fill="#22C55E" onclick="selectBlock('TRIB_108')"/>
+      <text x="103" y="91" class="blk-txt light">T66 108</text>
+      <rect id="b_UST_109_1" class="blk" x="135" y="42" width="88" height="10" rx="2" fill="#86EFAC" onclick="selectBlock('UST_109_1')"/>
+      <rect id="b_ALT_109" class="blk" x="128" y="55" width="102" height="22" rx="4" fill="#86EFAC" onclick="selectBlock('ALT_109')"/>
+      <text x="179" y="69" class="blk-txt">ALT 109</text>
+      <rect id="b_109_T66" class="blk selected" x="128" y="80" width="102" height="18" rx="4" fill="#16A34A" onclick="selectBlock('109_T66')"/>
+      <text x="179" y="92" class="blk-txt light">109 ALT TRİBÜN 66</text>
+      <rect id="b_ALT_110" class="blk" x="236" y="44" width="44" height="32" rx="4" fill="#86EFAC" onclick="selectBlock('ALT_110')"/>
+      <text x="258" y="62" class="blk-txt">ALT 110</text>
+      <rect id="b_TRIB_110" class="blk" x="236" y="80" width="32" height="18" rx="3" fill="#22C55E" onclick="selectBlock('TRIB_110')"/>
+      <text x="252" y="91" class="blk-txt light">T66 110</text>
+
+      <!-- SOL TRİBÜNLER -->
+      <rect id="b_UST_106" class="blk" x="12" y="114" width="28" height="72" rx="4" fill="#FDE047" onclick="selectBlock('UST_106')"/>
+      <text x="26" y="152" class="blk-txt">ÜST 106</text>
+      <rect id="b_ALT_106" class="blk" x="45" y="110" width="32" height="76" rx="4" fill="#38BDF8" onclick="selectBlock('ALT_106')"/>
+      <text x="61" y="150" class="blk-txt">ALT 106</text>
+      <rect id="b_ALT_106_IC" class="blk" x="80" y="110" width="16" height="76" rx="3" fill="#86EFAC" onclick="selectBlock('ALT_106_IC')"/>
+      <path id="b_UST_105" class="blk" d="M12,192 H36 L52,248 L32,262 L12,232 Z" fill="#FDE047" onclick="selectBlock('UST_105')"/>
+      <text x="28" y="226" class="blk-txt">ÜST 105</text>
+      <polygon id="b_ALT_105" class="blk" points="45,192 86,192 94,216 58,234" fill="#38BDF8" onclick="selectBlock('ALT_105')"/>
+      <text x="68" y="212" class="blk-txt">ALT 105</text>
+      <polygon id="b_ALT_104" class="blk" points="92,224 114,224 104,262 76,246" fill="#38BDF8" onclick="selectBlock('ALT_104')"/>
+      <text x="96" y="244" class="blk-txt">ALT 104</text>
+      <polygon id="b_UST_104" class="blk" points="66,252 104,268 96,298 48,274" fill="#FDE047" onclick="selectBlock('UST_104')"/>
+      <text x="78" y="278" class="blk-txt">ÜST 104</text>
+
+      <!-- VIP TRİBÜNLERİ -->
+      <rect id="b_VIP1_103" class="blk" x="116" y="222" width="42" height="8" rx="2" fill="#EC4899" onclick="selectBlock('VIP1_103')"/>
+      <rect id="b_VIP2_103" class="blk" x="116" y="232" width="42" height="18" rx="3" fill="#FB923C" onclick="selectBlock('VIP2_103')"/>
+      <text x="137" y="244" class="blk-txt light">VIP 103</text>
+      <rect id="b_VIP1_102" class="blk" x="162" y="222" width="42" height="8" rx="2" fill="#EC4899" onclick="selectBlock('VIP1_102')"/>
+      <rect id="b_VIP2_102" class="blk" x="162" y="232" width="42" height="18" rx="3" fill="#FB923C" onclick="selectBlock('VIP2_102')"/>
+      <text x="183" y="244" class="blk-txt light">VIP 102</text>
+      <rect id="b_VIP1_101" class="blk" x="208" y="222" width="42" height="8" rx="2" fill="#EC4899" onclick="selectBlock('VIP1_101')"/>
+      <rect id="b_VIP2_101" class="blk" x="208" y="232" width="42" height="18" rx="3" fill="#FB923C" onclick="selectBlock('VIP2_101')"/>
+      <text x="229" y="244" class="blk-txt light">VIP 101</text>
+
+      <!-- SAĞ TRİBÜNLER -->
+      <polygon id="b_ALT_111" class="blk" points="282,66 306,86 296,106 272,102" fill="#38BDF8" onclick="selectBlock('ALT_111')"/>
+      <text x="289" y="92" class="blk-txt">ALT 111</text>
+      <polygon id="b_UST_111" class="blk" points="312,42 344,78 344,108 316,108 308,82" fill="#FDE047" onclick="selectBlock('UST_111')"/>
+      <text x="328" y="84" class="blk-txt">ÜST 111</text>
+      <rect id="b_ALT_112_IC" class="blk" x="266" y="114" width="14" height="72" rx="3" fill="#86EFAC" onclick="selectBlock('ALT_112_IC')"/>
+      <rect id="b_ALT_112" class="blk" x="283" y="114" width="32" height="72" rx="4" fill="#38BDF8" onclick="selectBlock('ALT_112')"/>
+      <text x="299" y="152" class="blk-txt">ALT 112</text>
+      <rect id="b_UST_112" class="blk" x="320" y="114" width="28" height="72" rx="4" fill="#FDE047" onclick="selectBlock('UST_112')"/>
+      <text x="334" y="152" class="blk-txt">ÜST 112</text>
+      <polygon id="b_ALT_113" class="blk" points="282,192 312,192 318,214 290,228" fill="#38BDF8" onclick="selectBlock('ALT_113')"/>
+      <text x="299" y="210" class="blk-txt">ALT 113</text>
+      <path id="b_UST_113" class="blk" d="M322,192 H346 V234 L326,264 L308,248 Z" fill="#FDE047" onclick="selectBlock('UST_113')"/>
+      <text x="330" y="226" class="blk-txt">ÜST 113</text>
+      <polygon id="b_ALT_114" class="blk" points="254,224 276,224 292,246 264,262" fill="#38BDF8" onclick="selectBlock('ALT_114')"/>
+      <text x="272" y="244" class="blk-txt">ALT 114</text>
+      <polygon id="b_UST_114" class="blk" points="262,268 300,252 318,274 270,298" fill="#FDE047" onclick="selectBlock('UST_114')"/>
+      <text x="288" y="278" class="blk-txt">ÜST 114</text>
+    </svg>
+
+    <div class="controls">
+      <select id="blockSelect" onchange="syncMapFromSelect()">
+        <option value="109_T66" selected>109 Alt Tribün 66</option>
+        <option value="ALT_109">Alt 109</option>
+        <option value="UST_109">Üst 109</option>
+        <option value="ALT_108">Alt 108</option>
+        <option value="TRIB_108">Tribün 66 - 108</option>
+        <option value="UST_108">Üst 108</option>
+        <option value="ALT_110">Alt 110</option>
+        <option value="TRIB_110">Tribün 66 - 110</option>
+        <option value="UST_110">Üst 110</option>
+        <option value="ALT_111">Alt 111</option>
+        <option value="UST_111">Üst 111</option>
+        <option value="ALT_112">Alt 112</option>
+        <option value="UST_112">Üst 112</option>
+        <option value="ALT_113">Alt 113</option>
+        <option value="UST_113">Üst 113</option>
+        <option value="ALT_114">Alt 114</option>
+        <option value="UST_114">Üst 114</option>
+        <option value="VIP2_101">VIP 101</option>
+        <option value="VIP2_102">VIP 102</option>
+        <option value="VIP2_103">VIP 103</option>
+        <option value="ALT_104">Alt 104</option>
+        <option value="UST_104">Üst 104</option>
+        <option value="ALT_105">Alt 105</option>
+        <option value="UST_105">Üst 105</option>
+        <option value="ALT_106">Alt 106</option>
+        <option value="UST_106">Üst 106</option>
+        <option value="MISAFIR_107">Misafir 107</option>
+        <option value="MISAFIR_108">Misafir 108</option>
+      </select>
+      <select id="rowSelect" onchange="updateFooter()">
+        <option value="1">Sıra 1</option><option value="2">Sıra 2</option><option value="3">Sıra 3</option>
+        <option value="4" selected>Sıra 4</option><option value="5">Sıra 5</option><option value="6">Sıra 6</option>
+        <option value="7">Sıra 7</option><option value="8">Sıra 8</option><option value="9">Sıra 9</option>
+        <option value="10">Sıra 10</option><option value="11">Sıra 11</option><option value="12">Sıra 12</option>
+      </select>
+      <select id="seatSelect" onchange="updateFooter()">
+        <option value="1">Koltuk 1</option><option value="5">Koltuk 5</option><option value="10">Koltuk 10</option>
+        <option value="14" selected>Koltuk 14</option><option value="18">Koltuk 18</option><option value="22">Koltuk 22</option>
+      </select>
+    </div>
+
+    <button type="button" class="btn-join" onclick="activateShow()">IŞIK ŞOVUNA KATIL</button>
+  </div>
+
+  <div class="active-overlay" id="activeScreen">
+    <h2>ŞOVA BAĞLANDIN!</h2>
+    <p style="margin-top:8px; font-weight:600;">Ekran parlaklığını sona getir ve telefonunu havaya kaldır.</p>
+    <button type="button" class="btn-edit" onclick="editSeat()">Koltuk Değiştir</button>
+  </div>
+
+  <div class="footer" id="seatFooter">109 Alt Tribün 66 • Sıra 4 • Koltuk 14</div>
+
+  <script>
+    var isJoined = false;
+    var wakeLock = null;
+    var effectInterval = null;
+    var socket = (typeof io !== 'undefined') ? io() : null;
+
+    var blockAngleMap = {
+      'VIP2_101': 0.0, 'VIP1_101': 0.0, 'VIP2_102': 0.5, 'VIP1_102': 0.5, 'VIP2_103': 1.0, 'VIP1_103': 1.0,
+      'ALT_104': 1.6, 'UST_104': 1.7, 'ALT_105': 2.2, 'UST_105': 2.3, 'ALT_106_IC': 2.8, 'ALT_106': 2.9, 'UST_106': 3.0,
+      'MISAFIR_107': 3.6, 'MISAFIR_108': 4.1, 'TRIB_108': 4.5, 'ALT_108': 4.6, 'UST_108': 4.7,
+      '109_T66': 5.2, 'ALT_109': 5.3, 'UST_109_1': 5.4, 'UST_109': 5.5,
+      'TRIB_110': 6.0, 'ALT_110': 6.1, 'UST_110': 6.2, 'ALT_111': 6.7, 'UST_111': 6.8,
+      'ALT_112_IC': 7.3, 'ALT_112': 7.4, 'UST_112': 7.5, 'ALT_113': 8.0, 'UST_113': 8.1, 'ALT_114': 8.6, 'UST_114': 8.7
+    };
+
+    function selectBlock(code) {
+      document.querySelectorAll('.blk').forEach(function(el) { el.classList.remove('selected'); });
+      var target = document.getElementById('b_' + code);
+      if (target) target.classList.add('selected');
+      var sel = document.getElementById('blockSelect');
+      if (sel && sel.querySelector('option[value="' + code + '"]')) sel.value = code;
+      updateFooter();
+    }
+
+    function syncMapFromSelect() { selectBlock(document.getElementById('blockSelect').value); }
+
+    function updateFooter() {
+      var sel = document.getElementById('blockSelect');
+      var bText = sel.options[sel.selectedIndex].text;
+      document.getElementById('seatFooter').innerText = bText + ' • Sıra ' + document.getElementById('rowSelect').value + ' • Koltuk ' + document.getElementById('seatSelect').value;
+    }
+
+    function activateShow() {
+      isJoined = true;
+      document.getElementById('setupCard').style.display = 'none';
+      document.getElementById('activeScreen').style.display = 'flex';
+      if ('wakeLock' in navigator) {
+        navigator.wakeLock.request('screen').then(function(wl) { wakeLock = wl; }).catch(function() {});
+      }
+    }
+
+    function editSeat() {
+      isJoined = false;
+      clearInterval(effectInterval);
+      document.body.style.backgroundColor = '#FF6600';
+      document.getElementById('activeScreen').style.display = 'none';
+      document.getElementById('setupCard').style.display = 'block';
+    }
+
+    function handleCommand(cmd) {
+      if (!isJoined || !cmd) return;
+      clearInterval(effectInterval);
+      var overlay = document.getElementById('activeScreen');
+      var blok = document.getElementById('blockSelect').value;
+      var seatNo = parseInt(document.getElementById('seatSelect').value, 10) || 10;
+      var anglePos = (blockAngleMap[blok] !== undefined) ? blockAngleMap[blok] : 5.0;
+      var seatOffsetMs = seatNo * 12;
+
+      overlay.style.opacity = (cmd.mode === 'IDLE') ? '1' : '0.15';
+
+      if (cmd.mode === 'SOLID_ORANGE') { document.body.style.backgroundColor = '#FF6600'; }
+      else if (cmd.mode === 'SOLID_WHITE') { document.body.style.backgroundColor = '#FFFFFF'; }
+      else if (cmd.mode === 'STROBE') {
+        var on = false;
+        effectInterval = setInterval(function() {
+          on = !on;
+          document.body.style.backgroundColor = on ? '#FFFFFF' : '#FF6600';
+        }, cmd.speed || 120);
+      } else if (cmd.mode === 'WAVE_CW') {
+        document.body.style.backgroundColor = '#141414';
+        setTimeout(function() {
+          document.body.style.backgroundColor = '#FFFFFF';
+          setTimeout(function() { document.body.style.backgroundColor = '#FF6600'; }, 380);
+        }, (anglePos * 260) + seatOffsetMs);
+      } else if (cmd.mode === 'WAVE_CCW') {
+        document.body.style.backgroundColor = '#141414';
+        setTimeout(function() {
+          document.body.style.backgroundColor = '#FFFFFF';
+          setTimeout(function() { document.body.style.backgroundColor = '#FF6600'; }, 380);
+        }, ((9.0 - anglePos) * 260) + seatOffsetMs);
+      } else { document.body.style.backgroundColor = '#FF6600'; }
+    }
+
+    if (socket) {
+      socket.on('connect', function() { document.getElementById('onlineBadge').innerText = '● CANLI BAĞLI'; });
+      socket.on('show_command', handleCommand);
+    }
+  </script>
+</body>
+</html>
