@@ -55,6 +55,8 @@
       <button type="button" class="fx point" onclick="sendCmd('STROBE', 230)">SAYI RİTMİ (ORTA)</button>
       <button type="button" class="fx wave" onclick="sendCmd('WAVE_CW')">360° DALGA (SAAT YÖNÜ)</button>
       <button type="button" class="fx wave" onclick="sendCmd('WAVE_CCW')">360° DALGA (TERS YÖN)</button>
+      <button type="button" class="fx" style="background:#DC2626; color:#FFF;" onclick="sendCountdown(10)">10 SN GERİ SAYIM</button>
+      <button type="button" class="fx" style="background:#B91C1C; color:#FFF;" onclick="sendCountdown(5)">5 SN GERİ SAYIM</button>
       <button type="button" class="fx idle" onclick="sendCmd('IDLE')">BEKLEME MODUNA DÖN</button>
     </div>
 
@@ -93,7 +95,7 @@
           }
         });
       } else {
-        errEl.innerText = 'Sunucu bağlı değil! Terminalde "npm start" çalıştırıp http://localhost:3000/dj.html adresinden girin.';
+        errEl.innerText = 'Sunucu bağlantısı bekleniyor...';
       }
     }
 
@@ -105,7 +107,13 @@
       }
     }
 
-    // Sunucu üzerinden (http/https) açıldıysa Socket.io yükle
+    function sendCountdown(seconds) {
+      if (socket && isConnected) {
+        socket.emit('dj_trigger', { mode: 'COUNTDOWN', duration: seconds });
+        document.getElementById('log').innerText = seconds + ' sn Geri Sayım Başlatıldı (' + new Date().toLocaleTimeString() + ')';
+      }
+    }
+
     if (window.location.protocol.startsWith('http')) {
       var s = document.createElement('script');
       s.src = '/socket.io/socket.io.js';
@@ -116,7 +124,7 @@
           var pill = document.getElementById('connStatus');
           pill.style.background = '#14532D';
           pill.style.color = '#4ADE80';
-          pill.innerText = '● Sunucu Bağlı (localhost / Azure)';
+          pill.innerText = '● Sunucu Bağlı';
         });
         socket.on('disconnect', function() {
           isConnected = false;
@@ -129,15 +137,7 @@
           document.getElementById('fanCount').innerText = count;
         });
       };
-      s.onerror = function() {
-        document.getElementById('connStatus').innerText = '● Socket.io yüklenemedi (npm start çalışıyor mu?)';
-      };
       document.head.appendChild(s);
-    } else {
-      var pill = document.getElementById('connStatus');
-      pill.style.background = '#7F1D1D';
-      pill.style.color = '#FCA5A5';
-      pill.innerText = '● HATA: Dosya olarak açıldı! http://localhost:3000/dj.html kullanın.';
     }
   </script>
 </body>

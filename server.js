@@ -41,6 +41,8 @@ io.on('connection', (socket) => {
     currentShowState = {
       mode: payload.mode,
       speed: payload.speed || 150,
+      duration: payload.duration || 10,
+      startTime: Date.now(),
       timestamp: Date.now()
     };
 

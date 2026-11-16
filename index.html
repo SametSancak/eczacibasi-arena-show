@@ -21,6 +21,15 @@
       overflow-x: hidden;
       user-select: none;
     }
+
+    #countdownText {
+      display: none;
+      font-size: 9rem;
+      font-weight: 900;
+      line-height: 1;
+      text-shadow: 0 8px 30px rgba(0,0,0,0.45);
+      z-index: 20;
+    }
     .top-bar { width: 100%; max-width: 480px; display: flex; justify-content: space-between; align-items: center; z-index: 10; }
     .badge { background: rgba(0,0,0,0.35); padding: 7px 14px; border-radius: 20px; font-size: 0.78rem; font-weight: 800; }
     .setup-card {
@@ -205,7 +214,7 @@
 
     <button type="button" class="btn-join" onclick="activateShow()">IŞIK ŞOVUNA KATIL</button>
   </div>
-
+  <div id="countdownText">10</div>
   <div class="active-overlay" id="activeScreen">
     <h2>ŞOVA BAĞLANDIN!</h2>
     <p style="margin-top:8px; font-weight:600;">Ekran parlaklığını sona getir ve telefonunu havaya kaldır.</p>
@@ -229,6 +238,11 @@
       'ALT_112_IC': 7.3, 'ALT_112': 7.4, 'UST_112': 7.5, 'ALT_113': 8.0, 'UST_113': 8.1, 'ALT_114': 8.6, 'UST_114': 8.7
     };
 
+    var urlBlok = new URLSearchParams(window.location.search).get('blok');
+    if (urlBlok && blockAngleMap[urlBlok] !== undefined) {
+      selectBlock(urlBlok);
+    }
+
     function selectBlock(code) {
       document.querySelectorAll('.blk').forEach(function(el) { el.classList.remove('selected'); });
       var target = document.getElementById('b_' + code);
@@ -238,7 +252,9 @@
       updateFooter();
     }
 
-    function syncMapFromSelect() { selectBlock(document.getElementById('blockSelect').value); }
+    function syncMapFromSelect() {
+      selectBlock(document.getElementById('blockSelect').value);
+    }
 
     function updateFooter() {
       var sel = document.getElementById('blockSelect');
@@ -258,6 +274,8 @@
     function editSeat() {
       isJoined = false;
       clearInterval(effectInterval);
+      var cdEl = document.getElementById('countdownText');
+      if (cdEl) cdEl.style.display = 'none';
       document.body.style.backgroundColor = '#FF6600';
       document.getElementById('activeScreen').style.display = 'none';
       document.getElementById('setupCard').style.display = 'block';
@@ -266,7 +284,11 @@
     function handleCommand(cmd) {
       if (!isJoined || !cmd) return;
       clearInterval(effectInterval);
+
       var overlay = document.getElementById('activeScreen');
+      var cdEl = document.getElementById('countdownText');
+      if (cdEl) cdEl.style.display = 'none';
+
       var blok = document.getElementById('blockSelect').value;
       var seatNo = parseInt(document.getElementById('seatSelect').value, 10) || 10;
       var anglePos = (blockAngleMap[blok] !== undefined) ? blockAngleMap[blok] : 5.0;
@@ -274,9 +296,11 @@
 
       overlay.style.opacity = (cmd.mode === 'IDLE') ? '1' : '0.15';
 
-      if (cmd.mode === 'SOLID_ORANGE') { document.body.style.backgroundColor = '#FF6600'; }
-      else if (cmd.mode === 'SOLID_WHITE') { document.body.style.backgroundColor = '#FFFFFF'; }
-      else if (cmd.mode === 'STROBE') {
+      if (cmd.mode === 'SOLID_ORANGE') {
+        document.body.style.backgroundColor = '#FF6600';
+      } else if (cmd.mode === 'SOLID_WHITE') {
+        document.body.style.backgroundColor = '#FFFFFF';
+      } else if (cmd.mode === 'STROBE') {
         var on = false;
         effectInterval = setInterval(function() {
           on = !on;
@@ -294,11 +318,42 @@
           document.body.style.backgroundColor = '#FFFFFF';
           setTimeout(function() { document.body.style.backgroundColor = '#FF6600'; }, 380);
         }, ((9.0 - anglePos) * 260) + seatOffsetMs);
-      } else { document.body.style.backgroundColor = '#FF6600'; }
+      } else if (cmd.mode === 'COUNTDOWN') {
+        overlay.style.opacity = '0';
+        if (cdEl) cdEl.style.display = 'block';
+        var totalSec = cmd.duration || 10;
+        var endTime = (cmd.startTime || Date.now()) + (totalSec * 1000);
+
+        effectInterval = setInterval(function() {
+          var remaining = Math.ceil((endTime - Date.now()) / 1000);
+          if (remaining > 0) {
+            if (cdEl) cdEl.innerText = remaining;
+            if (remaining <= 3) {
+              document.body.style.backgroundColor = '#FFFFFF';
+              if (cdEl) cdEl.style.color = '#FF6600';
+              setTimeout(function() {
+                document.body.style.backgroundColor = '#FF6600';
+                if (cdEl) cdEl.style.color = '#FFFFFF';
+              }, 220);
+            } else {
+              document.body.style.backgroundColor = '#FF6600';
+              if (cdEl) cdEl.style.color = '#FFFFFF';
+            }
+          } else {
+            clearInterval(effectInterval);
+            if (cdEl) cdEl.style.display = 'none';
+            handleCommand({ mode: 'STROBE', speed: 95 });
+          }
+        }, 200);
+      } else {
+        document.body.style.backgroundColor = '#FF6600';
+      }
     }
 
     if (socket) {
-      socket.on('connect', function() { document.getElementById('onlineBadge').innerText = '● CANLI BAĞLI'; });
+      socket.on('connect', function() {
+        document.getElementById('onlineBadge').innerText = '● CANLI BAĞLI';
+      });
       socket.on('show_command', handleCommand);
     }
   </script>
